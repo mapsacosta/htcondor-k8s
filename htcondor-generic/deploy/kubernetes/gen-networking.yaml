@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+  labels:
+    app: okd-collector
+  name: okd-collector
+  namespace: cmst1
+spec:
+  ports:
+  - name: condor-ce
+    port: 9618
+    protocol: TCP
+    targetPort: 9618
+  selector:
+    app: okd-collector
+    deploymentconfig: okd-collector
+  externalIPs:
+  - 131.225.205.135
+  sessionAffinity: None
+  type: ClusterIP
+status:
+  loadBalancer: {}

@@ -1,0 +1,48 @@
+# Disabling the "daemon family" feature on HTCondor8.9.2
+SEC_USE_FAMILY_SESSION = False
+
+#-- Authentication settings
+SEC_DEFAULT_AUTHENTICATION = REQUIRED
+SEC_DEFAULT_AUTHENTICATION_METHODS = TOKEN
+SEC_READ_AUTHENTICATION    = OPTIONAL
+SEC_CLIENT_AUTHENTICATION  = OPTIONAL
+
+DENY_CLIENT        = anonymous@*
+
+#--  Privacy settings
+SEC_DEFAULT_ENCRYPTION = OPTIONAL
+SEC_DEFAULT_INTEGRITY = REQUIRED
+SEC_READ_INTEGRITY = OPTIONAL
+SEC_CLIENT_INTEGRITY = OPTIONAL
+SEC_READ_ENCRYPTION = OPTIONAL
+SEC_CLIENT_ENCRYPTION = OPTIONAL
+
+#-- Token authentication paths
+SEC_TOKEN_SYSTEM_DIRECTORY = /etc/condor/tokens.d
+SEC_PASSWORD_DIRECTORY = /etc/condor/password.d
+SOFT_UID_DOMAIN = True
+
+# Setting DENY policies
+# By default unauthenticate and anonymous users are DENIED
+# The default READ policy is sufficient, so no need to define
+# a corresponding DENY entry
+DENY_WRITE         = anonymous@* unauthenticated@unmapped
+DENY_ADMINISTRATOR = anonymous@* unauthenticated@unmapped
+DENY_DAEMON        = anonymous@* unauthenticated@unmapped
+DENY_NEGOTIATOR    = anonymous@* unauthenticated@unmapped
+
+# Setting ALLOW policies
+# By default, off site READ access is blocked
+# There is no need to set other ALLOW entries, defaults are
+# sufficient
+ALLOW_READ= */*.fnal.gov
+ALLOW_WRITE= */*
+
+#Explicitly setting ALLOW/DENY_DAEMON
+ALLOW_DAEMON = $(ALLOW_WRITE)
+DENY_DAEMON  = $(DENY_WRITE)
+
+# Disable hostname check during GSI authentication
+# This is requried for workers since they use service
+# certificates, not host certs
+MASTER_DEBUG = D_SECURITY

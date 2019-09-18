@@ -1,0 +1,107 @@
+# This file contains configuration for local/batch schedd daemon
+# running on HTCondor CEs
+#
+CONDOR_ADMIN = 
+COLLECTOR_HOST = 
+CONDOR_HOST = 
+
+UID_DOMAIN = 
+FILESYSTEM_DOMAIN = 
+DEFAULT_DOMAIN_NAME = 
+HOST_ALIAS = 
+
+# Security fix, 1-30-2015
+SENDMAIL=/usr/sbin/sendmail
+
+MAX_FILE_DESCRIPTORS = 131072
+
+# On updates, do a peaceful restart to preserve running jobs.
+MASTER_NEW_BINARY_RESTART = PEACEFUL
+
+# Spool directory has to be on the larger partition
+SPOOL = /home/condor
+
+DAEMON_LIST = MASTER,SCHEDD
+
+PREEMPTION_REQUIREMENTS = FALSE
+
+CREATE_CORE_FILES = True
+
+# SlotWeight is now defined in terms of Memory per core so we need to set a reasonable default memory.
+# We take the total memory and divide by the total number of CPUs.  In theory, this will produce a
+# SlotWeight that is nearly the same as the default SlotWeight
+#  from the manual, RequestMemory is in MB
+JOB_DEFAULT_REQUESTMEMORY = 2000
+JOB_DEFAULT_REQUESTDISK = 40000000
+
+JOB_RENICE_INCREMENT = 0
+
+JOB_START_COUNT = 5
+JOB_START_DELAY = 1
+JOB_STOP_COUNT  = 50
+JOB_STOP_DELAY  = 1
+
+MAX_CONCURRENT_DOWNLOADS  = 5
+MAX_CONCURRENT_UPLOADS    = 5
+MAX_JOBS_RUNNING          = 5000
+MAX_HISTORY_ROTATIONS     = 10
+MAX_HISTORY_LOG           = 30000000
+MAX_SCHEDD_LOG            = 100000000
+MAX_SHADOW_LOG            = 100000000
+
+REQUEST_CLAIM_TIMEOUT = 720
+
+SCHEDD_QUERY_WORKERS = 10
+
+SHADOW_RENICE_INCREMENT = 10
+
+START_LOCAL_UNIVERSE = TotalLocalJobsRunning < 200 || GridMonitorJob =?= TRUE
+
+UPDATE_COLLECTOR_WITH_TCP = True
+
+EVENT_LOG = $(LOG)/EventLog
+EVENT_LOG_MAX_SIZE = 209715200
+EVENT_LOG_MAX_ROTATIONS = 10
+
+# For versions 8.4.9+, it is important to explicitly enable
+# the shared port daemon. Otherwise condor gets confused when
+# running the schedd daemon alone. This may be removed in the
+# newer versions of HTCondor (Farrukh 2017-05-26)
+DAEMON_LIST =$(DAEMON_LIST), SHARED_PORT
+USE_SHARED_PORT = True
+SHARED_PORT_PORT = 9618
+
+# Adding a SLOT_WEIGHT expression as requested in RITM0645351
+#
+# English: a single slot is 1 cpu and 2048 MB of RAM. If a user request exceeds either of these
+# limits, the usage is accounted for accordingly.
+#
+# HTCondor expr: If a job's cpu to memory request (per 2GB) ratio is 1 or more than 1, we account
+# based on number of cpus. Else, we account based on memory (per 2GB)
+#
+SCHEDD_USE_SLOT_WEIGHT = True
+SLOT_WEIGHT = ifThenElse(RequestCpus >= ceiling(RequestMemory / 2048.0), RequestCpus, RequestMemory / 2048.0)
+
+QUEUE_SUPER_USER_MAY_IMPERSONATE = .*
+
+# To disable LCMAPS callouts for the local HTCondor on a CE
+GSI_AUTHZ_CONF=/dev/null
+
+# Put the CE in downtime for jobsub
+SCHEDD_ATTRS = InDownTime
+SCHEDD.InDownTime = True
+
+# Disabling -batch behavior of condor_q
+# This was added for convenience to force condor_q to
+# show the queue in the old format without batching the
+# jobs together (Farrukh - 2017-08-15)
+CONDOR_Q_DASH_BATCH_IS_DEFAULT = FALSE
+
+# Added to allow administrative access on the local schedd
+ALLOW_ADMINISTRATOR = $(ALLOW_ADMINISTRATOR) $(FULL_HOSTNAME)
+
+# Curb matchmaking
+CURB_MATCHMAKING = (ShadowsRunning > .97*$(MAX_JOBS_RUNNING)) || (RecentDaemonCoreDutyCycle > 0.90)
+
+# Fetching image enforcement attributes from worker nodes
+SYSTEM_JOB_MACHINE_ATTRS = $(SYSTEM_JOB_MACHINE_ATTRS)

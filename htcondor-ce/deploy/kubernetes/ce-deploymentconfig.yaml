@@ -1,0 +1,47 @@
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  labels:
+    app: okd-ce
+  name: okd-ce
+  namespace: cmst1
+spec:
+  replicas: 1
+  selector:
+    app: okd-ce
+    deploymentconfig: okd-ce
+  strategy:
+    activeDeadlineSeconds: 21600
+    resources: {}
+    rollingParams:
+      intervalSeconds: 1
+      maxSurge: 25%
+      maxUnavailable: 25%
+      timeoutSeconds: 600
+      updatePeriodSeconds: 1
+    type: Rolling
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: okd-ce
+        deploymentconfig: okd-ce
+    spec:
+      containers:
+      - image: mapsacosta/htcondor-k8s:sl7_htc8.9.3_ce
+        imagePullPolicy: IfNotPresent
+        name: okd-ce
+        ports:
+        - containerPort: 9618
+          protocol: TCP
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      volumes:
+  test: false

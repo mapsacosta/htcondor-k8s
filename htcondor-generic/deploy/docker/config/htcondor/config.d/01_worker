@@ -1,0 +1,145 @@
+# Worker node configuration for an OKD startd
+
+# Copying the base config from workers as is
+COLLECTOR_HOST = 
+CONDOR_HOST = 
+CCB_ADDRESS = 
+
+UID_DOMAIN = 
+FILESYSTEM_DOMAIN = 
+
+SENDMAIL=/usr/sbin/sendmail
+
+MAX_FILE_DESCRIPTORS = 131072
+
+# On updates, do a peaceful restart to preserve running jobs.
+MASTER_NEW_BINARY_RESTART = PEACEFUL
+
+DAEMON_LIST = MASTER,STARTD
+
+###############################################################################
+## Set the execution directory for the job ####################################
+###############################################################################
+EXECUTE           = /home/condor
+
+###############################################################################
+## Default values - may be overridden below ###################################
+###############################################################################
+CONTINUE                = TRUE
+PREEMPT                 = FALSE
+PREEMPTION_REQUIREMENTS = FALSE
+KILL                    = FALSE
+START                   = TRUE
+SUSPEND                 = FALSE
+WANT_SUSPEND            = FALSE
+WANT_VACATE             = FALSE
+
+###############################################################################
+## Max time (sec) to let this job run uninterrupted before kicking it off #####
+###############################################################################
+MaxJobRetirementTime = (60*60*48)
+
+###############################################################################
+## Clear the RANK so that all machines are considered equally #################
+###############################################################################
+RANK = 0
+
+###############################################################################
+## Make it explicit - we are 64-bit ###########################################
+###############################################################################
+SUBSYS_ATTRS  = x86_64
+
+###############################################################################
+## Make it explicit - set NUM_CPUS to the number of cores on the wn ###########
+###############################################################################
+NUM_CPUS = $(DETECTED_CORES)
+
+###############################################################################
+## Tell condor_preen to actually remove cruft #################################
+###############################################################################
+PREEN_ARGS  = -r
+
+###############################################################################
+## When to start jobs #########################################################
+###############################################################################
+## $(START)             - All previous expressions eval to true
+## (HELD_NODE =!= TRUE) - The Node is not held
+## (JobUniverse =!= 1)  - We do not do Standard Universe jobs
+START = $(START)\
+    && (HELD_NODE =!= TRUE)\
+    && (JobUniverse =!= 1) \
+    && (!isUndefined(MY.IsK8sNode) && MY.IsK8sNode=!=False)
+
+###############################################################################
+## The maximum size for the STARTD log (in MiB) ###############################
+###############################################################################
+MAX_STARTD_LOG = 100Mb
+
+###############################################################################
+## Use TCP (not UDP) to send updates to the collector #########################
+###############################################################################
+UPDATE_COLLECTOR_WITH_TCP = True
+
+###############################################################################
+## Update collector at random intervals #######################################
+###############################################################################
+STARTER_UPDATE_INTERVAL = 60
+UPDATE_INTERVAL = $RANDOM_INTEGER(230, 370)
+MASTER_UPDATE_INTERVAL = $RANDOM_INTEGER(230, 370)
+
+###############################################################################
+## Give the JVM 1GB of memory #################################################
+###############################################################################
+Starter_Job_Environment = "_JAVA_OPTIONS=-Xmx1024m"
+
+###############################################################################
+## Number of seconds after which a claim will stop accepting additional jobs ##
+###############################################################################
+CLAIM_WORKLIFE = 3600
+
+###############################################################################
+## CPU Affinity Settings ######################################################
+###############################################################################
+# Incompatible with dynamic slots
+ENFORCE_CPU_AFFINITY = False
+# Set CPU Affinity to limit jobs to the cores assigned to the slot
+ASSIGN_CPU_AFFINITY = TRUE
+
+###############################################################################
+## RequestMemory Adjustments ##################################################
+###############################################################################
+# Default is:
+#   quantize(RequestMemory,{128})
+# This means that it will modify the RequestMemory to the next multiple of 128
+# We do not want this behavior.  Setting this attribute to RequestMemory preserves
+# the value we wish to keep
+MODIFY_REQUEST_EXPR_REQUESTMEMORY = RequestMemory
+
+###############################################################################
+## Attributes that we want to advertise in the STARTD classads ################
+###############################################################################
+IFOS_installed = "SL6,SL7"
+GLIDEIN_ResourceName = "T1_US_FNAL_OKD"
+IsK8sNode = True
+
+STARTD_ATTRS = HELD_NODE HELD_BY HELD_REASON REBOOT_ENABLED SHOULD_NOT_REBOOT SHOULD_NOT_REBOOT_REASON
+STARTD_ATTRS=$(STARTD_ATTRS) IFOS_installed GLIDEIN_ResourceName IsK8sNode
+#
+###############################################################################
+## Attributes that we want to in each slot classad ############################
+###############################################################################
+## http://research.cs.wisc.edu/htcondor/manual/v8.2/3_3Configuration.html#21097
+STARTD_SLOT_ATTRS = State, Activity, EnteredCurrentActivity
+
+# Partitionable slots config
+NUM_SLOTS = 1
+NUM_SLOTS_TYPE_1 = 1
+SLOT_TYPE_1 = 100%
+SLOT_TYPE_1_PARTITIONABLE = True
+
+USE_SHARED_PORT = True
+SHARED_PORT_ARGS = -p 9620
+
+# Reducing the advertised memory by 1GB to reserve it for the system
+# otherwise Docker takes up all available memory through cgroups
+MEMORY = $(DETECTED_MEMORY) - 1024
